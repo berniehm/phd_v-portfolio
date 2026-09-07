@@ -1,0 +1,107 @@
+# Project objectives — research portfolio tracker
+
+**Repo:** `phd-portfolio` · **Owner:** Bernadette
+**Spec:** `BUILD_BRIEF_portfolio_site.md` · **Content:** `paper_register_v2.md`
+**Shape:** four milestones. Each one ships something that works and can be described to someone else.
+
+This is a real tool with a real user, which is the thing most portfolio projects are missing. Build it as one.
+
+---
+
+## How to work
+
+Set the four milestones below in GitHub, file the issues under them, close them as you go. The commit history and the closed issues *are* part of the deliverable — people who hire frontend developers read them, and a clean trail of small commits with real messages says more than any single feature.
+
+**The brief is a starting point, not a boundary.** The decisions in it are recommendations with reasoning attached; where you see a better way, take it and write down why. Milestone 4 asks for exactly that. The one thing worth holding to is the scope note at the end — not because the ideas are bad, but because a tool that grows faster than it gets used stops getting used.
+
+---
+
+## Milestone 1 — Data model and grid
+*Ships: a working site showing all ten papers.*
+
+The types come first. If `types.ts` and `register.ts` are right, the components are mechanical.
+
+- [ ] Vite + React + TypeScript scaffold, deploys to Cloudflare Pages
+- [ ] `types.ts` exactly as specified in the brief, Section 4
+- [ ] `register.ts` — all ten items entered from `paper_register_v2.md`, ids `1`–`10`
+- [ ] Design tokens in `styles.css` — nine colours, no border radius anywhere, no shadows
+- [ ] `BlockCard` — id, short title, progress bar, status, court, ageing counter
+- [ ] `BlockGrid` — cards grouped by priority tier
+- [ ] `Header` — the three summary lines from Section 9
+- [ ] Progress derives from `tasks`, never hardcoded
+- [ ] Responsive at 900px and 620px
+
+**Done when** all ten render and the numbers are computed rather than typed.
+
+---
+
+## Milestone 2 — Detail panel and typography
+*Ships: the thing Victor actually opens.*
+
+- [ ] `DetailPanel` — actions, then completed, then outstanding, in that order
+- [ ] Selection state, deselect on second click, `#5` in the URL hash read on load
+- [ ] KaTeX installed; serif for prose, monospace for labels, nothing serif below 15px
+- [ ] `<Tex>` wrapper — must render δ_c ≈ 1/√27, τ ≥ 7, AC(1) = 0.994, 2⁴
+- [ ] Links list at the foot of the panel, opening externally
+- [ ] Filters: All · Primary · Co-author · My move · Blocked
+- [ ] Filtering does not clear the selection
+- [ ] Keyboard throughout — real buttons, `aria-expanded`, Escape deselects, visible focus
+- [ ] **Edit link** on each item, opening the GitHub web editor at `register.ts` (Section 12 of the brief)
+- [ ] Broken `register.ts` renders a readable error rather than a blank page
+- [ ] `tsc --noEmit` on push via GitHub Actions
+
+**Done when** Victor can open it, click a paper, and know what to do next without scrolling.
+
+---
+
+## Milestone 3 — Ready queue and blocked ledger
+*Ships: the feature that makes it worth using. This is the interesting one.*
+
+The problem: Victor's advisor says *focus on X*. X is waiting on someone else. Rather than sit idle, he needs to know instantly what else is available. That is a computed view, not a page.
+
+- [ ] `needs` field on `Task` — `'none'`, or the person or artefact it waits on
+- [ ] **Ready queue** as the default view when nothing is selected: every task with `needs: 'none'` whose parent has no unresolved blocker, sorted by leverage
+- [ ] **Blocked ledger**: every blocked item, what it waits on, who holds it, how many days
+- [ ] Ageing counters throughout, from `updated`
+- [ ] Empty state names the oldest unmoved item
+- [ ] `debt` field and `DebtList` — unresolved count on the card, section in the panel
+- [ ] Sixth filter: Debt
+
+**Done when** the landing view answers "what can I start right now" without Victor opening a single card.
+
+Worth knowing why this matters: the blocked ledger is the same data pointed at a different audience. When the advisor asks why something hasn't moved, it turns *why haven't you* into *here is where the queue is jammed, and here is what I did instead*.
+
+---
+
+## Milestone 4 — Demo build and write-up
+*Ships: the version you can show people.*
+
+The real site sits behind Cloudflare Access and holds unpublished research, so it can't be shown to anyone. Same codebase, different dataset, second deployment.
+
+- [ ] `src/data/demo.ts` — synthetic register, same shape, invented content
+- [ ] Dataset selected by `VITE_DATASET`; demo build has no real content in the bundle
+- [ ] Second Cloudflare Pages project from the same repo, public, `VITE_DATASET=demo`
+- [ ] Four behaviour tests — progress from tasks; ageing across a month boundary; filters preserve selection; `#5` selects on load
+- [ ] Contrast checked, `prefers-reduced-motion` respected
+- [ ] `README.md` — problem, decisions, what was rejected and why, screenshots, run instructions
+- [ ] `CASE_STUDY.md` — 600–900 words, the link for a CV
+
+### On the case study
+
+This is the highest-value hour in the project. Cover:
+
+- **The problem in one paragraph.** A researcher with ten concurrent papers who is regularly blocked on other people and needs to know what he can do instead.
+- **The constraints.** Two users, one read-only. Unpublished research, so it cannot be public. Content updated a few times a week by the people who own the repo.
+- **The decisions, with reasoning.** Static data file rather than a database — version history, diffs, rollback, no infrastructure. Cloudflare Access rather than a login — auth in the browser is decorative, and the least secure part of any site is the login someone wrote themselves. Links out rather than storage — the tool indexes, it does not hold. A LaTeX repo rather than an in-app editor, because rebuilding cross-references, bibliography and equation numbering would land somewhere worse than the tool that already exists.
+- **What you added.** The brief is a starting point, not a boundary. Anything you change, simplify or design better than specified belongs here — with the reasoning. That is the part that shows judgement rather than compliance, and it is the part an employer is actually reading for.
+- **The one hard part.** The ready queue — turning a list of tasks and dependencies into a single answer to "what can I do right now".
+
+Most portfolios show what was built. Far fewer show why it was built that way, and which paths were considered and set aside.
+
+---
+
+## Scope
+
+Milestones 1 and 2 are a weekend. Three is a weekend. Four is an afternoon plus the writing.
+
+Anything not in the brief goes in a `FUTURE.md` file rather than into the build. A tracker that grows into a platform becomes a tracker nobody updates, and a stale tracker is worse than none — it looks authoritative while being wrong.

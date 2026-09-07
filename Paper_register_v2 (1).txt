@@ -1,0 +1,253 @@
+# Paper register and thesis map
+
+## Ocean-Forced Atmospheric Circulation and Climate Extremes in the Atlantic–European–Mediterranean Region
+
+*Approved title, signed off by committee April/May 2026*
+
+**Revision 2 · 25 August 2026**
+**Canonical numbering:** Victor's, 1–10. Chapter labels secondary.
+**Count:** 6 primary author · 4 co-author
+**Research complete:** target mid-2027 · **Thesis:** mid-2028
+
+---
+
+## The list
+
+| # | Paper | Role | Status | Thesis role |
+|---|---|---|---|---|
+| 1 | North Atlantic SST driving atmospheric circulation | Primary | In review, Sci Reports | Ch. 1 · Objective 1 |
+| 2 | SST R4 and Mediterranean weather regimes 4 & 7 | Primary | Active | Ch. 2 · Objective 1 → feeds 5 |
+| 3 | Equatorial β-plane ocean–atmosphere coupling | Primary | Numerics done, blocked | Ch. 3 · mechanism |
+| 4 | Where CCM fails — methods | Primary | Active | Ch. 4 or appendix · methods |
+| 5 | ICON ocean–atmosphere teleconnections, Mediterranean | Primary | Pre-analysis | Ch. 5 · Objective 2 |
+| 6 | ICON + CMIP SSP projections | Primary | Not started | Ch. 6 · Objective 3 |
+| 7 | Mediterranean drought case study | Co-author | Ongoing | Supporting |
+| 8 | PDS–DMI | Co-author | **Published**, Atmos. Res. | Supporting |
+| 9 | PDS follow-up | Co-author | Paused to November | Supporting |
+| 10 | Precipitation and land cover | Co-author | Opening | Supporting |
+
+7 is the Lembo group. 8 and 9 are Berkovic. 10 is Yuval.
+
+Dropped from revision 1: the all-seasons SOM index and JJA-R4 stay absorbed inside 2, and both placeholders are gone. With six primary-author papers they were never needed for the count.
+
+---
+
+## What changed, and why it matters
+
+### Paper 3 just fixed your thesis narrative
+
+You described it as equatorial atmospheric winds acting on the ocean, and the ocean then driving the atmospheric response. That is not a digression. **It is Paper 1's question in a different dynamical regime.**
+
+Paper 1 asks whether midlatitude North Atlantic SST forces the circulation above it. Paper 3 asks how that two-way exchange works at the equator, where the dynamics are cleaner and the β-plane makes the wave response tractable. Same physics, different latitude — and the equatorial case is where the mechanism can be seen rather than inferred statistically.
+
+This matters because the framing was a known loose end — the chapter was carried as topically distant and kept in on Assaf's say-so. Under this description it stops being a chapter that needs defending: the thesis is ocean–atmosphere coupling across latitudes and timescales, and Paper 3 is the mechanistic chapter the statistical chapters point at.
+
+Worth putting to Assaf in those words. He has been carrying the justification for you.
+
+### Paper 4 has a job in the thesis
+
+It is not an orphan methods paper. It is *why Paper 1 is a lead-lagged composite study rather than a causal one.* A thesis that changes methods between chapters has to say why, and Paper 4 is that answer written up properly instead of buried in a footnote.
+
+That argues for a real chapter or a substantial appendix rather than an external output. It does not contradict Assaf's cap — his constraint was on scope, not on where it lands.
+
+### Paper 2 is infrastructure for 5 and 6
+
+Not a race condition — a build order. The MedWRs were constructed to see how SST regimes affect the Mediterranean, with R4 and SPEI as the focus. In ICON you switch regimes on and off, watch how that propagates through the South Atlantic, Indian and Pacific basins, and read the effect on the Mediterranean atmosphere through the MedWRs. They are the measuring instrument for 5 and 6.
+
+So the dependency is provenance, not timing. What matters is that the MedWR definition is **frozen once ICON runs begin** — the 20–60°N domain, k = 8, the R4/SPEI focus. Changing it afterwards means re-running experiments, not just redrawing figures. Record it in the debt register as a lock, not a risk.
+
+### Causality is established by intervention, not inference
+
+This is the structural point and it deserves saying plainly.
+
+Paper 1 tried to establish direction statistically and the method failed for a diagnosable reason. Paper 5 establishes it by **intervention** — switching regimes on and off in a controlled model and observing the response. That is a stronger claim than any statistical test on observations could have supported, and it is the standard attribution design.
+
+Which means the thesis does not have a hole where the causality went. It has causality in the right place, made the right way. Paper 1 becomes the observed association, Paper 5 the controlled test, Paper 4 the account of why the observational route does not work. Read in that order the failure is not a setback in the argument — it is the reason the argument is built the way it is.
+
+Ordering between 4 and 5 is therefore free. Either can appear first.
+
+---
+
+## Thesis structure
+
+**Programme status:** committee met April/May 2026, thesis approved, **Stage B in progress**.
+
+```
+                    Ocean–atmosphere coupling:
+              mechanism, attribution, and projection
+
+  OBJECTIVE 1              OBJECTIVE 2            OBJECTIVE 3
+  observed association     causal test            future
+                           by intervention
+
+  [1] NA SST →             [5] ICON multi-        [6] ICON + CMIP
+      circulation      →       basin, Med     →       SSP
+                          ↗    regimes on/off
+  [2] R4 + MedWR 4&7  ────┘
+      the measuring instrument for 5 and 6
+
+  MECHANISM                        METHODS
+  [3] equatorial β-plane           [4] where CCM fails
+      two-way coupling                 why 1 is an association
+                                       and 5 is the causal test
+```
+
+**Order:** 1 → 2 → 3 → 5 → 6, with 4 placed where the methods argument is needed.
+
+Papers 7–10 are supporting references. None is a chapter. None is load-bearing.
+
+---
+
+## Does the work still fit the title?
+
+The title was signed in April/May. Paper 1 changed after that. Two points worth having an answer to, neither requiring a title change.
+
+### "Ocean-Forced" — and the direction that survived
+
+The title asserts ocean forcing atmosphere. Paper 1 set out to demonstrate that observationally and could not: the direction that cleared its surrogate null was the opposite one. Taken alone, that is an awkward thing to have in Chapter 1 of a thesis with this title.
+
+It is not taken alone. **Paper 5 establishes ocean forcing by intervention**, which is a stronger demonstration than any observational test could have given. So the title holds — but the route to it now runs through the model, not the statistics, and the introduction has to say so explicitly rather than leaving a reader to notice the gap.
+
+The sequence to state up front: Chapter 1 establishes the observed association and the sub-seasonal lead time. Chapter 4 explains why the observational record cannot settle direction. Chapter 5 settles it by controlled experiment. Chapter 3 shows the coupling is two-way at the equator, where the mechanism is tractable.
+
+Written that way the thesis is stronger than one where the statistics had simply worked, because it says *how* the claim was established rather than asserting it. Draft that paragraph early — it is the spine of the general introduction and it is the question an examiner will ask first.
+
+### "Atlantic–European–Mediterranean Region" — and Paper 3
+
+The equatorial β-plane work sits outside the named region unless it is framed as equatorial Atlantic. One sentence in the introduction resolves it, but the sentence has to exist: either the chapter is equatorial Atlantic and therefore inside the region, or it is a mechanism chapter whose applicability to the region is the point.
+
+The second framing is the honest one and the stronger one. Say it deliberately rather than hoping nobody asks.
+
+---
+
+## Timeline against mid-2027
+
+Research complete mid-2027, writing after. About 22 months, and three things land inside it.
+
+| When | What |
+|---|---|
+| Sept 2026 | MedCLIVAR, Limassol |
+| Nov 2026 | Paper 9 restarts with Berkovic |
+| **Jan 2027** | **Baby** |
+| Mid-2027 | ECMWF application window |
+| Jul–Sep 2027 | Vienna stay, if taken |
+| **Mid-2027** | **Research must be complete** |
+| Mid-2028 | Thesis submission |
+
+Papers 5 and 6 are the entire risk. Everything else is finished, in review, or small. Paper 5's ICON machinery is unbuilt, has no agreed timeline, and Paper 6 runs on 5's output.
+
+If 5 slips into 2027 it lands on top of the baby, the ECMWF window and Vienna simultaneously.
+
+So the ICON timeline conversation with Assaf is not one item among twenty. **It is the item.** Everything else here can absorb a delay. That one cannot, because it is the only thing standing between you and a 2027 where four hard things happen at once.
+
+---
+
+## Per paper
+
+### 1 · North Atlantic SST driving atmospheric circulation
+`Primary · Scientific Reports, in review · Ch. 1 · Objective 1`
+
+Four DJF SST regimes from SOM + k-means on HadISST 1950–2024, reorganising Atlantic–European circulation through weather-regime frequency, EKE, momentum flux and LWA. R3 lifts Greenland Blocking from 10% to 27%. R4 is post-2021 and absent from the prior record.
+
+**CCM is carved out entirely** — a data mismatch in the inputs, and the material moves to Paper 4. What remains is the lead-lagged composite: R3 significant at eleven consecutive leads from 10 to 30 days, peak z = +4.06 at 18 days, FDR-surviving, pattern correlation 0.70–0.89. Plus out-of-sample forecast skill, R2 and R3 beating climatology for NAO beyond 30 days under leave-one-winter-out regression. Daily SST regime index reproduces 79.9% of monthly labels.
+
+**No editing until reviews land.** It may return accepted with major revisions, in which case the reviewers set the specification and restructuring now would be done twice. Editor was seeking six reviewers as of 23 August.
+
+*Court: editor. Nothing available.*
+
+### 2 · SST R4 and Mediterranean weather regimes 4 & 7
+`Primary · Active · Ch. 2 · Objective 1 · feeds 5`
+
+R4 recurs in JJA and SON across 75 years; DJF 2023/24 is its only DJF occurrence, and the seasonal displacement is the result. Focus narrowed to MedWR 4 and 7. Nine figures built. Absorbs the April blocking memo and the all-seasons SOM index.
+
+Open: Figure 7 replacement with Loizou; blocking event definition, cell-level against Masato-style.
+
+*Court: Victor, with one thread out to Loizou.*
+
+### 3 · Equatorial β-plane ocean–atmosphere coupling
+`Primary · Blocked on theory · Ch. 3 · mechanism · with Paldor · QJRMS`
+
+How equatorial atmospheric winds force the ocean, and how the ocean response feeds back to the atmosphere. Built: phase portraits, Poincaré sections, Lyapunov exponents across the transition, parameter-space and resonance scans, squirt diagnostics, and a reworked perturbation giving a chaos/non-chaos scoring system.
+
+Blocked on Paldor's cubic amplitude derivation for the *paper* — the numerics do not recover δ_c ≈ 0.1952 ≈ 1/√27, and transport varies far more with forcing frequency than with amplitude. Not blocked as work: weekly meetings with Paldor are running and the material is developing.
+
+Assaf's ask on 25 August was to see where it has got to **so he can contribute** — he is not redirecting effort onto it. A look at the current state, not a deliverable.
+
+*Court: Victor. Active.*
+
+### 4 · Where CCM fails
+`Primary · Active · Ch. 4 or appendix · methods · NPG or Chaos`
+
+Coupled fast/slow Lorenz, baseline CCM, then progressive damping of one mode to test whether the attractors remain reconstructable. Framed from the start on timescale separation and autocorrelation-driven embedding degeneracy — the mechanism diagnosed in Paper 1, where SST AC(1) = 0.994 makes nearest neighbours temporal rather than dynamical.
+
+Anchors: Peña & Kalnay (2004), *Nonlin. Processes Geophys.* **11**, 319–327; BozorgMagham et al. (2015), *PLoS ONE* **10**(6) e0131226.
+
+Next: run the damping experiment on Moriah, about an hour.
+
+**Publication order against Paper 5 is free.** If 4 lands first it explains why the observational route fails, and 5 then supplies the causal test by intervention. If 5 lands first, 4 becomes the retrospective account of why the model experiment was the right instrument. Neither reading is weaker, so no scheduling pressure runs between them.
+
+*Court: Victor. Available now.*
+
+### 5 · ICON ocean–atmosphere teleconnections, Mediterranean
+`Primary · Pre-analysis · Ch. 5 · Objective 2 · THE RISK`
+
+2⁴ factorial across North Atlantic R1–R4, Mediterranean SOM, Indian Ocean IOD/DMI and Pacific ENSO. Stein–Alpert factor separation. Phase 0 machinery, Phase 1 single-basin, Phase 2 the NA×IO and NA×MED interactions. Ensemble 20–30. Global ICON with Mediterranean nest — SPICE is regional-only and cannot generate remote-basin Rossby-wave forcing, so it is not a fallback.
+
+Machinery unbuilt. No timeline agreed. Conditions on Paper 2's MedWR classification.
+
+*Court: Assaf — on a conversation that has not been requested.*
+
+### 6 · ICON + CMIP SSP projections
+`Primary · Not started · Ch. 6 · Objective 3`
+
+Analysed against the conditions of each completed ICON experiment, so data accrues during 5 rather than after it. The dependency is on 5's design, not its results — which is why freezing the factorial before Phase 1 decides whether this chapter is cheap or expensive.
+
+*Correctly not started.*
+
+### 7 · Mediterranean drought case study
+`Co-author · Lembo group · ongoing`
+
+Roughly twenty figures. Diagnostic overlap with Paper 2 has collided once, on 2 m temperature and precipitation, resolved by swapping diagnostics. A recurring risk, not a solved incident.
+
+### 8 · PDS–DMI
+`Co-author · Berkovic · PUBLISHED, Atmospheric Research`
+
+Causal direction established with **PCMCI, not CCM**. Independent of Paper 1's correction; no re-analysis required. It cites Paper 1 for the causal-directionality framework, so have a short answer ready once Paper 1's reframing settles — raise it with Berkovic and Assaf then, not before.
+
+### 9 · PDS follow-up
+`Co-author · Berkovic · paused to November`
+
+Two research questions scoped, proposals drafted. Step 0 reuses Paper 2's daily MedWR classification, so restart is cheap. Authorship recorded inconsistently — settle in November rather than at submission.
+
+### 10 · Precipitation and land cover
+`Co-author · Yuval · Scientific Reports, in review`
+
+CESM large ensemble. Land-cover change alters the Indian Thermal Low and increases Middle East spring precipitation. Reviewers asked for wave activity flux and challenged causal language drawn from monthly statistics. Possible contribution: WAF at 500 hPa on the large ensemble, a few hours to restructure. On causality, PCMCI rather than CCM.
+
+Meeting 26 August, 10:00 Israel. Decide: hand over the code, or co-author.
+
+---
+
+## What is available right now
+
+Papers 1, 8 and 9 are held elsewhere. Paper 6 should not be started. That leaves, today:
+
+| | Action | Cost | Unblocks |
+|---|---|---|---|
+| 1 | Send the Zoom link for the Yuval meeting | 2 min | Paper 10 |
+| 2 | **Request the ICON timeline conversation** | 1 email | Papers 5 and 6 |
+| 3 | Pull the current Paper 3 state together for Assaf | half a day | His standing ask |
+| 4 | Run the Lorenz damping experiment on Moriah | ~1 hr | Paper 4 |
+| 5 | Chase Loizou on Figure 7 | 1 email | Paper 2 |
+
+Only one of those is genuinely urgent by consequence rather than by size. The ICON timeline is the sole item on this register that cannot absorb a delay, because Papers 5 and 6 are the only research left that has not started and mid-2027 is fixed.
+
+That is the pattern the site has to surface. Not because you do not know it — but when someone says *focus on X* and X is held elsewhere, the useful reply is a list of what is available instead.
+
+---
+
+## A note on the ageing counters
+
+The dates in this register came from the portfolio tracker of 2 August, and where nothing has been written down since, the counters read as though nothing has happened. That was wrong about Paper 3 — weekly meetings have been running throughout, and the counter said 23 days.
+
+The counter is only as honest as its inputs. In the built site, `updated` has to be set from real events, and it must be trivial to change, or it will quietly report stalls that are not stalls. Worth Bernadette knowing when she builds it: **the failure mode of an ageing counter is confident wrongness**, and the fix is making the update cheap enough that it actually happens.

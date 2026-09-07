@@ -1,0 +1,493 @@
+# Build brief — PhD portfolio site
+
+**For:** Bernadette, building with Claude Code
+**Pairs with:** `DEPLOY_INSTRUCTIONS.md` (hosting and access) and `paper_register_2026-08-25.md` (source content)
+**Status of this document:** it is the spec. Hand it to Claude Code as-is.
+**Revision:** 3 — ids switched from paper codes (C1, S4…) to name-based slugs, item counts made dynamic instead of hardcoded so the register has room to grow, and the ageing-counter acceptance criterion reworked around real submission/update timelines rather than a fixed to-do example.
+
+This project has two jobs. It is Victor's working tool, and it is a portfolio piece for Bernadette. Those two jobs mostly agree, and Section 11 covers the places where they do not.
+
+---
+
+## 1. What this is
+
+A private site that shows every paper and project Victor has in flight, and what remains to be done on each one. Fourteen items today — six first-author papers, four co-authored papers, two latent spinoffs and two placeholders — and that count is a snapshot, not a ceiling: new papers get added as Victor starts them, so nothing in this brief or the build should assume a fixed total.
+
+The core interaction is one thing: **select a block, see what is finished, what is left, and what Victor's next move is.** Everything else is supporting.
+
+**Who uses it.** Victor, most days, to decide what to work on. Assaf, occasionally, read-only, to see where things stand without asking. Assaf said plainly he does not need it — it is Victor's tool that Assaf can also see. Build for Victor first.
+
+## 2. What it is not
+
+- **Not a task manager.** No due dates on everything, no notifications, no recurring items, no assignment workflow.
+- **Not multi-user.** Two people, one of whom only reads.
+- **Not a login system.** Access is handled entirely by Cloudflare Access in front of the site. Do not build a password field, a session, or a user table. See `DEPLOY_INSTRUCTIONS.md`.
+- **Not a database app.** Content lives in one file in the repo and is edited by hand.
+
+## 3. Stack
+
+- **Vite + React + TypeScript**
+- **Plain CSS** in one stylesheet using custom properties. No Tailwind, no component library, no CSS-in-JS.
+- **KaTeX** — the only runtime dependency. Supplies both the Computer Modern typeface and inline maths rendering. See Section 7.
+- **Vitest + Testing Library** for the handful of tests in Section 11.
+- **No backend, no database, no API calls.** Everything renders from a static data file.
+- **Deploy:** Cloudflare Pages, build command `npm run build`, output `dist`.
+
+```
+src/
+  data/register.ts      ← real content, the only file edited routinely
+  data/demo.ts          ← synthetic content for the public build (Section 12)
+  types.ts
+  App.tsx
+  components/
+    Header.tsx
+    FilterBar.tsx
+    BlockGrid.tsx
+    BlockCard.tsx
+    DetailPanel.tsx
+    ProgressBar.tsx
+    DebtList.tsx
+    Tex.tsx             ← inline maths wrapper
+  styles.css
+```
+
+**Why not a database.** The content changes a few times a week and is edited by the two people who own the repo. A file in git gives version history, diffs, rollback, and no infrastructure. If Assaf ever needs to write to it, that is the moment to add Cloudflare D1 and a Worker — not before.
+
+## 4. Data model
+
+Put this in `src/types.ts` exactly.
+
+```ts
+export type Role   = 'first' | 'co';
+export type Kind   = 'chapter' | 'supporting' | 'latent' | 'placeholder';
+export type Status = 'published' | 'in_review' | 'active' | 'blocked'
+                   | 'not_started' | 'paused';
+export type Court  = 'victor' | 'assaf' | 'collaborator' | 'external'
+                   | 'compute' | 'none';
+
+export interface Task {
+  text: string;
+  done: boolean;
+  date?: string;        // ISO, when it was completed
+}
+
+export interface Action {
+  text: string;
+  owner: string;        // 'Victor', 'Victor → Paldor', 'Victor ↔ Assaf'
+  leverage: 'high' | 'medium' | 'low';
+  cost?: string;        // 'One email', 'About an hour', 'A few hours'
+}
+
+export type LinkKind = 'repo' | 'preprint' | 'doi' | 'data'
+                     | 'figures' | 'manuscript' | 'slides' | 'notes';
+
+export interface Link {
+  kind: LinkKind;
+  label: string;
+  url: string;
+  note?: string;        // 'Zenodo DOI, minted at acceptance'
+}
+
+export interface Debt {
+  decision: string;     // 'MedWR domain fixed at 20–60°N'
+  why: string;          // why it was taken, recorded NOW
+  reconcile: string;    // what must be checked at synthesis
+  affects: string[];    // other ids that must match or diverge knowingly
+  resolved: boolean;
+}
+
+export interface Work {
+  id: string;           // kebab-case slug of the paper's name — 'sst-circulation', 'beta-plane-paldor'
+  role: Role;
+  kind: Kind;
+  title: string;
+  short: string;        // 3–6 words, for the card
+  objective?: string;   // 'Objective 1'
+  venue?: string;       // 'Scientific Reports'
+  status: Status;
+  court: Court;
+  courtLabel: string;   // 'Editor', 'Victor → Paldor'
+  priority: 0 | 1 | 2 | 3 | 4;
+  updated: string;      // ISO, last REAL movement
+  summary: string;      // one or two paragraphs
+  tasks: Task[];        // done and outstanding in ONE array
+  actions: Action[];    // Victor's next moves, ordered
+  links: Link[];        // pointers OUT — see Section 10
+  debt: Debt[];         // synthesis debt — see Section 10
+  blockedBy?: string[];
+  feeds?: string[];     // other ids
+  note?: string;        // constraint, risk, or standing instruction
+}
+```
+
+**One decision to get right:** completed and outstanding work live in the **same** `tasks` array, distinguished by the `done` boolean. Do not split them into two arrays. Progress is `tasks.filter(t => t.done).length / tasks.length`, and having them in one list keeps that honest — you cannot quietly drop a task by moving it between arrays.
+
+**`updated` is the last real movement**, not the last file edit. It drives an ageing counter, and the ageing counter is the point of the whole site. If it gets bumped on every commit it becomes decoration.
+
+## 5. Screens
+
+There is one screen.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ PhD portfolio            6 first author · 4 co-author    │
+│ Thesis mid-2028 · Objectives 2 and 3 outstanding         │
+├──────────────────────────────────────────────────────────┤
+│ [All] [First author] [Co-author] [My move] [Blocked]     │
+├───────────────────────────────┬──────────────────────────┤
+│ ┌────────┐ ┌────────┐         │  β-plane (Paldor)        │
+│ │SST→circ│ │ MedWR  │         │  Nonlinear β-plane...    │
+│ │ ███░░  │ │ ██░░░  │         │  ──────────────────      │
+│ │ review │ │ active │         │  Summary paragraph       │
+│ └────────┘ └────────┘         │                          │
+│ ┌────────┐ ┌────────┐         │  NEXT                    │
+│ │  ICON  │ │β-plane │ ←sel    │  → Pull state for Assaf  │
+│ │ ░░░░░  │ │ ████░  │  HIGH   │                          │
+│ └────────┘ └────────┘         │                          │
+│                               │  DONE 7                  │
+│                               │  ✓ Phase portraits       │
+│                               │  ✓ Lyapunov exponents    │
+│                               │                          │
+│                               │  OUTSTANDING 5           │
+│                               │  ○ Obtain A7 derivation  │
+│                               │  ○ Consolidate methods   │
+└───────────────────────────────┴──────────────────────────┘
+```
+
+**Grid.** Cards grouped by priority tier, P0 through P4. Each card: id, short title, progress bar, status word, court indicator, and a muted "N days" ageing figure. Clicking selects it.
+
+**Detail panel.** Sticky on desktop, right-hand column. On mobile it becomes a full-width panel below the grid, and selecting a card scrolls to it.
+
+Panel order matters — **actions first, then completed, then outstanding**. Not chronological, not alphabetical. Victor opens this to answer "what do I do next", and that answer must be above the fold. Completed sits above outstanding because seeing seven finished items before five unfinished ones is the accurate emotional read of most of these papers, and the register is partly there to counteract the opposite instinct.
+
+**Empty state.** Nothing selected: show a short standing summary — total items, how many are Victor's move, how many are blocked, and the oldest unmoved item by name. That last one is the single most useful sentence on the site.
+
+## 6. Behaviour
+
+- Selecting a card sets it as active; selecting it again deselects.
+- Filters narrow the grid. If the selected card is filtered out, keep it in the panel — do not clear the selection.
+- Filters: **All · First author · Co-author · My move · Blocked**. "My move" is `court === 'victor'`. "Blocked" is `status === 'blocked'` or a non-empty `blockedBy`.
+- Deep links: selected id in the URL hash (e.g. `#beta-plane-paldor`), read on load. Victor will paste these into emails.
+- Keyboard: cards are real buttons, tab-navigable, Enter/Space selects, Escape deselects, visible focus ring.
+- **No animation** beyond a 150ms colour transition on hover and focus. This is a working tool.
+
+## 7. Visual direction
+
+Continue the language of the existing systems map — the two documents will be read side by side.
+
+```css
+--paper:    #ECEFF0;   /* page */
+--card:     #F7F9F9;   /* raised surfaces */
+--ink:      #10202A;   /* text */
+--graphite: #5C6B73;   /* secondary text */
+--cold:     #2B5D8C;   /* first author, active */
+--warm:     #A33121;   /* blocked, at risk */
+--amber:    #C4901A;   /* act now */
+--moss:     #3E6B4F;   /* published, complete */
+--hair:     #C3CDD2;   /* rules and borders */
+```
+
+### Typography — LaTeX, selectively
+
+Install KaTeX and load its stylesheet. It ships Computer Modern clones as web fonts, so one dependency gives both the LaTeX look and real rendered maths.
+
+```css
+--serif: 'KaTeX_Main', 'Latin Modern Roman', Georgia, serif;
+--mono:  ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+```
+
+| Where | Face | Size |
+|---|---|---|
+| Item titles, summaries, notes, debt entries | `--serif` | 15–17px |
+| Task and action text | `--serif` | 15px |
+| Ids, status words, dates, counts, ageing, section labels | `--mono` | 10–12px |
+| Buttons and filters | `--mono` | 11px |
+
+**Do not put Computer Modern below 15px.** It was cut for print at high resolution and goes thin and muddy on screen — it is the single most common way this look goes wrong. Every small label stays monospace, which also preserves the hairline-and-rule character of the existing systems map.
+
+Set `font-feature-settings: "liga" 1, "onum" 1` on the serif for old-style figures in running prose. Keep lining figures in the monospace so counts and dates align in columns.
+
+**Inline maths.** Build a `<Tex>{'\\delta_c'}</Tex>` wrapper over `katex.renderToString` with `throwOnError: false`. It is needed immediately — δ_c ≈ 0.1952 ≈ 1/√27, the β-plane, τ ≥ 7 days, AC(1) = 0.994, z = +4.06, 2⁴ = 16. Rendering those properly rather than as Unicode approximations is most of why the LaTeX direction is right here, and it is the detail that reads as considered rather than decorative.
+
+Structure: hairline rules, square corners, **no border radius anywhere**, no shadows, no gradients. Progress bars are flat filled rectangles, not rounded pills.
+
+Status colours: `published` moss · `in_review` cold · `active` cold · `blocked` warm · `not_started` graphite · `paused` hair.
+
+Responsive at 900px (grid and panel stack) and 620px (single-column cards).
+
+## 8. Seed content
+
+**Ids are name-based slugs, not codes.** Victor and Assaf will keep saying "C1", "S4" out loud in conversation and email — that shorthand isn't going away and doesn't need to. But the `id` field in the data itself, and every place the site references an item (URL hash, `feeds`, debt `affects`), should be a kebab-case slug of the paper's name, so a reference reads as what the paper *is* rather than a code you have to look up. The crosswalk below maps the shorthand used elsewhere (this brief, `paper_register_v2.md`, email) to the slug to enter.
+
+| Slug | Shorthand | Slug | Shorthand |
+|---|---|---|---|
+| sst-circulation | C1 | ccm-failure-modes | C6 |
+| medwr-4-7 | C2 | med-drought-case-study | S3 |
+| beta-plane-paldor | C5 | iod-levant-dry-spells | S4 |
+| icon-attribution | C3 | pds-precursor | S1 |
+| cmip-projections | C4 | yuval-land-cover | S5 |
+
+The latent items and both placeholders are dropped for now — do not enter them. That's a current-scope decision, not a cap: the register isn't limited to ten items, and if one of the latents becomes a real seventh paper (Section 8 already anticipates the SOM regime index splitting off), it gets a slug the same way and is added like any other item.
+
+Full prose for every item is in `paper_register_v2.md`; read that file for the summaries and enter them close to verbatim. The task and action lists below exist nowhere else and must be entered as given.
+
+### North Atlantic SST → circulation
+`id: sst-circulation · first · chapter · Objective 1 · Scientific Reports · in_review · court: external "Editor" · P3 · updated 2026-08-25`
+
+Done: SOM + k-means on HadISST DJF 1950–2024, four regimes · WR frequency, EKE, momentum flux and LWA composites · submitted to npj Clim. Atmos. Sci., rejected · resubmitted to Scientific Reports · identified the data mismatch in the CCM inputs · decided to carve CCM out of the paper entirely and move it to C6 · lagged regime composite, R3 significant at 11 leads 10–30 days, peak z = +4.06 at 18 days, FDR-surviving · out-of-sample LOO forecast skill, R2 and R3 beat climatology for NAO beyond 30 days · daily SST regime index validated at 79.9%
+
+Outstanding: **hold until reviews land** · then restructure around the lead-lagged composite as the central result · remove CCM material to ccm-failure-modes · respond to reviewers
+
+Actions: **Wait.** (none, low) — the paper may return accepted with major revisions, and the reviewers' asks determine the shape of the rewrite. Restructuring now risks doing it twice against the wrong specification.
+
+Note: editor was seeking six reviewers as of 23 Aug. Assaf's standing instruction — do not open reviews before bed or before the weekend. Acceptance gates the Yissum conversation and the Lembo/Bordoni briefing.
+
+### SST R4 and Mediterranean weather regimes 4 & 7
+`id: medwr-4-7 · first · chapter · Objective 1 · active · court: victor · P1 · updated 2026-08-02 · feeds icon-attribution, cmip-projections`
+
+Done: nine figures built · R4 recurrence in JJA and SON across 75 years · DJF 2023/24 identified as the only DJF occurrence · MedWR k = 8 on the 20–60°N domain · focus narrowed to MedWR 4 and 7, with R4 against SPEI · absorbed the Paper A/B blocking memo · blocking diagnostics obtained from Loizou · all-seasons SOM regime index, 15 regimes, 899 months · JJA-R4 identified independently
+
+Outstanding: Figure 7 replacement · decide blocking event definition, cell-level against Masato-style · write Methods · write Results · draft Discussion · internal read by Assaf
+
+Actions: **Chase Loizou on Figure 7** (Victor → Loizou, medium) · **Settle the blocking event definition** (Victor, medium) — cell-level matches Paper 1, event-level is richer but the thresholds need defending
+
+Note: this is the measuring instrument for the ICON attribution and CMIP projections chapters — the MedWRs are how the ICON basin-switching experiments are read. Widening the domain to 20–75°N broke classifiability; 20–60°N restored it. Once ICON runs begin the MedWR definition is locked: changing it means re-running experiments, not redrawing figures.
+
+### Multi-basin ICON attribution
+`id: icon-attribution · first · chapter · Objective 2 · blocked · court: assaf "Victor ↔ Assaf" · P1 · updated 2026-08-02`
+
+Done: 2⁴ factorial designed across four basins · Stein–Alpert factor separation chosen · phasing designed, Phase 0 machinery, Phase 1 single-basin, Phase 2 NA×IO and NA×MED · ensemble size set at 20–30 · global-ICON-with-nest architecture settled, SPICE ruled out
+
+Outstanding: agree a timeline with Assaf · freeze the factorial design · build the ICON + Mediterranean nest machinery (A5) · generate EXTPAR fields · Phase 0 machinery test · Phase 1 runs · Phase 2 runs · define output diagnostics · set up the paired CMIP conditions archive
+
+Actions: **Open the ICON timeline conversation with Assaf** (Victor ↔ Assaf, high) — he is abroad more than home this month, so it is now or October · **Start building A5** (Victor, high) — the only unbuilt asset, and both icon-attribution and cmip-projections stand on it
+
+Note: the dominant schedule risk in the portfolio, ahead of sst-circulation's review outcome. Freezing the design before Phase 1 decides whether cmip-projections is free or expensive.
+
+### CMIP6/7 projections
+`id: cmip-projections · first · chapter · Objective 3 · not_started · court: none · P4 · updated 2026-08-02`
+
+Done: approach agreed — analysed against the conditions of each completed ICON experiment, so data accrues during icon-attribution
+
+Outstanding: select CMIP6/7 models · specify the paired-conditions archive · write the extraction pipeline · run per ICON experiment · analysis · write-up
+
+Actions: **None. Do not start.** (Victor, low) — correctly sequenced last; the dependency is on icon-attribution's design, not its results
+
+Note: sits at the end of the chain against a fixed date. Every month icon-attribution slips compresses cmip-projections rather than moving mid-2028.
+
+### Equatorial β-plane ocean–atmosphere coupling (Paldor)
+`id: beta-plane-paldor · first · chapter · QJRMS · active · court: victor · P2 · updated 2026-08-25`
+
+Done: phase portraits · Poincaré sections · Lyapunov exponents across the transition · parameter-space scans · resonance scans · squirt diagnostics · reworked perturbation yielding a chaos/non-chaos scoring system · Methods written as work proceeds · weekly meetings with Paldor running
+
+Outstanding: obtain Paldor's cubic amplitude derivation (A7) · establish what δ_c is a threshold of — onset, disappearance, fold, or transition between periodic solutions · consolidate three to four parallel methods into one framework · write Results · show Assaf the current state
+
+Actions: **Pull the current state together for Assaf** (Victor, high, half a day) — he asked to see where it has got to so he can contribute, not to redirect effort onto it
+
+Note: blocked on theory for the *paper*, not as work. The numerics do not recover δ_c ≈ 0.1952 ≈ 1/√27 — transport varies far more with forcing frequency than amplitude. Assaf, 25 Aug: "I do not want to appear on an article at the end without having contributed."
+
+### CCM failure modes under separated timescales
+`id: ccm-failure-modes · first · supporting · Nonlinear Processes in Geophysics or Chaos · active · court: victor · P2 · updated 2026-08-25`
+
+Done: CCM parameter sensitivity sweep · diagnosed autocorrelation-dominated embedding as the mechanism, SST AC(1) = 0.994 · identified both anchor papers, Peña & Kalnay (2004) and BozorgMagham et al. (2015) · framing fixed from the outset on timescale separation and embedding degeneracy
+
+Outstanding: implement the coupled fast/slow Lorenz system · baseline CCM on both modes · progressive damping experiment · sweep AC(1) against reconstruction quality · map the Lorenz result onto the observed SST case · position explicitly against BozorgMagham's time-varying-coupling cases · choose NPG or Chaos · draft
+
+Actions: **Run the damping experiment on Moriah** (Victor, medium, about an hour)
+
+Note: Assaf's cap, verbatim — a simple test, run it, look at the results, then decide. Not a second PhD. Not a thesis chapter.
+
+### Yuval — land cover, Indian Thermal Low, WAF
+`id: yuval-land-cover · co · supporting · Scientific Reports · active · court: victor · P0 · updated 2026-08-25`
+
+Done: nothing yet — opened 25 August
+
+Outstanding: meet Yuval, 26 Aug 10:00 Israel · assess how his 500 hPa data is structured · decide how to handle many ensemble members, mean or otherwise · decide handover against co-authorship · run WAF on the large ensemble if co-authoring · advise on PCMCI for the causality question
+
+Actions: **Send the Zoom link to Yuval and Assaf** (Victor, high, two minutes) · **Decide at the meeting: hand over the code, or run it as co-author** (Victor, medium, a few hours to restructure if running it)
+
+Note: reviewers asked why no wave activity flux, and challenged causal language from monthly statistics. CCM is the wrong tool here; PCMCI gives a cleaner direction.
+
+### IOD → Levant persistent dry spells
+`id: iod-levant-dry-spells · co · supporting · Atmospheric Research · published · court: none · P4 · updated 2026-08-02`
+
+Done: published · causal direction established with PCMCI
+
+Outstanding: prepare a short answer on the sst-circulation citation once sst-circulation's reframing settles
+
+Actions: **Raise the citation question with Berkovic and Assaf when the sst-circulation outcome is known** (Victor, low) — not before
+
+Note: the causal result rests on PCMCI and stands independently of sst-circulation's CCM correction. No re-analysis required.
+
+### Mediterranean drought case study
+`id: med-drought-case-study · co · supporting · Lembo group · active · court: collaborator "Group" · P4 · updated 2026-08-02`
+
+Done: contributing to a roughly twenty-figure group study
+
+Outstanding: ongoing contribution · monitor diagnostic overlap with medwr-4-7
+
+Actions: **Watch for overlap collisions with medwr-4-7** (Victor, low)
+
+Note: fired once already on 2 m temperature and precipitation, resolved by swapping diagnostics. Each collision costs a figure rebuild.
+
+### PDS precursor analysis, RQ1 + RQ2
+`id: pds-precursor · co · supporting · Berkovic · paused · court: collaborator · P4 · updated 2026-08-02`
+
+Done: two research questions scoped · proposals drafted
+
+Outstanding: settle authorship — recorded inconsistently · Step 0 tabulation reusing the medwr-4-7 daily MedWR classification · budget-term dominance conditioned on MedWR pathway · restart in November
+
+Actions: **Settle whether Victor is lead or co-author** (Victor ↔ Berkovic, medium) — the difference between six first-author papers and seven, and better resolved now than at submission
+
+### Latent and placeholders
+
+**All-seasons SOM regime index** (would be `som-regime-index` if promoted) — `first · latent · paused · P4`. Built and complete: 15 regimes across four seasons, PCA at 90% variance retained, 899 months from January 1950. No existing study has produced a unified seasonal regime framework at monthly resolution for the North Atlantic. Currently a component of medwr-4-7; separable into a methods paper if a seventh is ever wanted. Action: none — hold.
+
+**JJA-R4** (would be `jja-r4` if promoted) — `first · latent · paused · P4`. 22 months across 1951, 1952, 1958, 1998, 2005, 2010, 2023, 2024, with six consecutive months in 2023–24. Structurally mirrors DJF-R4, surfaced independently. Inside medwr-4-7. Action: none — hold.
+
+**Lightning** (would be `lightning` if promoted) — `placeholder · not_started · P4`. Idea only, no research question, no scope. Action: decide by the end of medwr-4-7 whether it becomes real or is dropped.
+
+**Unnamed** — `placeholder · not_started · P4`. Name only if scientifically wanted. With six first-author papers it will never be needed for the count. Action: none.
+
+## 9. Header content
+
+**Compute the first and third lines from `register`, not hardcoded strings.** Count by `role`/`kind` and derive the chapter order from the register data (chapters, in thesis sequence). If this is hardcoded text instead, it silently goes stale the first time Victor adds an eleventh paper.
+
+```
+{firstAuthorCount} first author · {coAuthorCount} co-author · {latentCount} latent
+Thesis mid-2028 · Requirement 3–4 first author — met with two to spare
+Objectives 2 and 3 outstanding · Chapter order: SST → circulation · MedWR 4&7 · β-plane (Paldor) · ICON attribution · CMIP projections
+```
+
+The second line is the point of the site. The requirement is met; icon-attribution and cmip-projections are the only two items the thesis cannot be submitted without, and they are the least advanced. The header should say so plainly rather than showing a completion percentage across all items, which would average that fact away into something reassuring and false.
+
+## 10. Links out, and the thesis-debt register
+
+Two additions that turn this from a tracker into something that earns its keep at submission.
+
+### 10.1 Links point out; they do not hold
+
+Each item carries a `links` array. The site **indexes** material and does not store it. Code stays in git, figures and data get a Zenodo DOI at publication, manuscripts live in their own repos, PDFs sit with the publisher.
+
+```ts
+links: [
+  { kind:'repo',       label:'Analysis code', url:'https://github.com/…/sst-circulation' },
+  { kind:'figures',    label:'Figures 1–9',   url:'…', note:'Regenerate with make figs' },
+  { kind:'data',       label:'Zenodo',        url:'…', note:'DOI minted at acceptance' },
+  { kind:'manuscript', label:'Overleaf',      url:'…' },
+]
+```
+
+Render as a compact monospace list at the foot of the detail panel. That is the whole feature — a field and a list, not an architecture.
+
+**The thesis itself is a LaTeX repo, not a page on this site.** Writing it here would mean rebuilding `\ref`, BibTeX, equation numbering, the HUJI template and track-changes with Assaf, and arriving somewhere worse than Overleaf after months of work. The site links to that repo like it links to everything else.
+
+### 10.2 The debt register
+
+This is the part that saves real time, and it does not exist in any other document.
+
+Thesis assembly is not expensive because files are hard to find. It is expensive because of the inconsistencies that only appear once chapters sit side by side — a domain fixed one way in medwr-4-7 and another in icon-attribution, a convention corrected in sst-circulation that beta-plane-paldor never picked up. Each one costs re-run figures, and by 2028 nobody remembers why the choice was made.
+
+So record the decision at the moment it is taken, while the reasoning is still live. Seed these now:
+
+- **MedWR domain 20–60°N** (medwr-4-7) — widening to 20–75°N broke classifiability. Any chapter using MedWR must match, or justify diverging. Affects icon-attribution, pds-precursor.
+- **k = 8 for MedWR** (medwr-4-7) — affects icon-attribution, pds-precursor.
+- **CCM direction convention** (sst-circulation) — the plotting convention had both directions swapped in every figure before correction. Any later CCM figure must state the convention explicitly. Affects ccm-failure-modes.
+- **Preprocessing symmetry rule** (sst-circulation) — all CCM inputs preprocessed identically, anomalies throughout, never raw against anomaly. Affects ccm-failure-modes.
+- **DSM continuity** (medwr-4-7) — computed over an unbroken series, subset afterwards. Affects icon-attribution.
+- **SST baseline: HadISST for regimes, ERA5 for atmosphere** (sst-circulation) — affects medwr-4-7, icon-attribution, cmip-projections.
+- **Regime numbering R1–R4** (sst-circulation) — the labels must not drift between chapters. Affects medwr-4-7, icon-attribution, cmip-projections.
+- **Stein–Alpert factor separation** (icon-attribution) — affects cmip-projections.
+- **Narrative frame: sub-seasonal predictability sources, not ocean forcing** — affects every chapter and the general introduction.
+
+Surface unresolved debt in two places: a count on the card, and a **Debt** section in the detail panel below the tasks. Add a sixth filter, **Debt**, showing only items with unresolved entries.
+
+Ten minutes per paper to seed. It is the difference between a hard month of synthesis and a brutal one.
+
+### 10.3 What this does not remove
+
+The site makes assembly cheap. It does not make the thesis short. You still owe a general introduction, a linking narrative explaining why sst-circulation → medwr-4-7 → beta-plane-paldor → icon-attribution → cmip-projections is one argument rather than five papers in a folder, a unified literature review, and a general discussion that says something the individual papers do not. beta-plane-paldor in particular needs a paragraph justifying why equatorial β-plane dynamics sits beside Atlantic SST forcing — Assaf has already flagged that the committee will ask.
+
+That synthesis is the actual thesis work and no archive removes a day of it. Worth knowing now rather than in 2028.
+
+## 11. The portfolio layer
+
+The private site sits behind Cloudflare Access and contains unpublished research, so it cannot be shown to anyone. That is a problem for a portfolio piece, and it has a clean solution.
+
+**Build a public demo from the same codebase.** `src/data/demo.ts` holds a synthetic register — invented projects, plausible shape, no real content. Select the dataset with an env var:
+
+```ts
+export const register = import.meta.env.VITE_DATASET === 'demo'
+  ? demoRegister : realRegister;
+```
+
+Two Cloudflare Pages projects from one repo: the real one behind Access, the demo public with `VITE_DATASET=demo`. The demo URL goes in Bernadette's portfolio and any application.
+
+**What makes this a strong piece is not feature count.** It is evidence of judgement, and the judgement is already in this brief — choosing a static file over a database, refusing to build auth, choosing to link out rather than store. Write those down. A short case study covering the problem, the constraints, the three or four decisions and what was deliberately left out is worth more than any number of additional features. Most portfolios show what someone built; very few show why they stopped.
+
+Concretely:
+
+- **README** — problem, decisions, what was rejected and why, screenshots, run instructions.
+- **CASE_STUDY.md** — 600–900 words, the version to link from a CV.
+- **Accessibility, done properly** — keyboard navigation throughout, visible focus, semantic buttons, `aria-expanded` on the cards, `prefers-reduced-motion` respected, contrast checked. Say so in the README. It is the most reliable signal of care in a frontend portfolio and it is cheap here.
+- **A few real tests** — progress derives from `tasks`; the ageing counter is correct across a month boundary; filters do not clear the selection; `#beta-plane-paldor` selects that item on load. Four tests that check behaviour beat forty that check rendering.
+- **Clean commit history** — small commits with real messages. People read these.
+
+**Scope discipline still applies.** With a baby due in January, this is a one-weekend build plus a weekend of polish. Everything in Sections 10 and 11 fits that. Anything beyond it does not, and a tracker that becomes a platform becomes a tracker nobody updates — which is worse than none, because it looks authoritative while being wrong.
+
+## 12. How Victor updates it
+
+This was underspecified in revision 1 and it matters, because a tracker that is awkward to update stops being updated, and a stale tracker is worse than none.
+
+**Victor does not run a dev environment.** He is not cloning the repo, running `npm install`, or working locally. The update path has to work from a browser.
+
+**The path: GitHub's web editor.** Open `src/data/register.ts` on github.com, click the pencil, edit, commit. Pages rebuilds in under a minute. No local setup, no terminal, no git knowledge beyond clicking commit. It also gives full history and a one-click revert if something breaks.
+
+To make that real rather than theoretical, add an **Edit** link to each item's detail panel:
+
+```
+https://github.com/{owner}/{repo}/edit/main/src/data/register.ts
+```
+
+Put the owner and repo in one constant. It is one line of code and it is the difference between updating taking ten seconds and requiring Victor to remember where the file lives.
+
+**Guard against the obvious failure.** A syntax error in `register.ts` breaks the build and the site goes blank. Two cheap protections:
+
+- Wrap the data import in a try/catch and render a plain error message naming the likely cause — a missing comma, or an unescaped apostrophe — rather than a white screen.
+- Add a GitHub Action running `tsc --noEmit` on push. It catches the error before Pages deploys and emails him.
+
+**What he will actually change, in order of frequency:** flipping `done` on a task; adding a task; updating `updated`; adding a link; adding or resolving a debt entry; changing `court` and `status`. Keep those fields near the top of each object so they are the first thing visible when the file opens.
+
+**Not worth building:** an in-app editor. It means auth, a write path, and a database, and it replaces a workflow that already gives version history and rollback for free. If updating still proves too awkward after a month of real use, that is the point to reconsider — with evidence rather than in advance.
+
+## 13. Done when
+
+- [ ] All items in `register.ts` render, grouped P0 to P4 — currently ten, and the grid and header counts do not assume a fixed total
+- [ ] Selecting a card shows actions, then completed, then outstanding
+- [ ] Progress bars derive from `tasks`, not hardcoded
+- [ ] Ageing counter reads from `updated`, not file-edit time — as of build date, icon-attribution (updated 2026-08-02, still waiting on the Assaf timeline conversation) reads as the oldest-unmoved item, while sst-circulation and beta-plane-paldor (both updated 2026-08-25) read as under a week old
+- [ ] Five filters work and do not clear the selection
+- [ ] `#beta-plane-paldor` in the URL selects that item on load
+- [ ] Keyboard navigable, visible focus, Escape deselects
+- [ ] Readable at 380px
+- [ ] Empty state names the oldest unmoved item
+- [ ] No auth code anywhere in the repo
+- [ ] `npm run build` produces `dist` and deploys clean to Pages
+- [ ] Edit link on each item opens the GitHub web editor at register.ts
+- [ ] A broken register.ts shows a readable error, not a blank page
+- [ ] `tsc --noEmit` runs on push via GitHub Actions
+- [ ] Serif is KaTeX_Main and never rendered below 15px
+- [ ] Inline maths renders: δ_c, 1/√27, τ ≥ 7, AC(1) = 0.994, 2⁴
+- [ ] Links list renders at the foot of the panel and opens externally
+- [ ] Debt count on cards; Debt section in the panel; Debt filter works
+- [ ] `VITE_DATASET=demo` builds the public version with no real content
+- [ ] README and CASE_STUDY.md written
+- [ ] The four behaviour tests pass
+
+## 14. For Claude Code
+
+Read `paper_register_2026-08-25.md` first — the summaries come from there and should be entered close to verbatim rather than paraphrased.
+
+Build `src/data/register.ts` completely before writing any component. It is the specification; if the types are right the components are straightforward.
+
+Ask before adding anything not in this brief. The failure mode for a tool like this is accumulating features until it takes longer to update than to ignore — at which point it stops being updated, and a tracker nobody updates is worse than no tracker, because it looks authoritative while being wrong.
